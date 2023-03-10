@@ -23,7 +23,15 @@ e.g.
 docker build -f Dockerfile \
     --build-arg FREESWITCH_REPO=https://github.com/hdiniz/freeswitch \
     --build-arg FREESWITCH_REVISION=fix-vmute-personal-canvas \
+    --build-arg ENABLED_MODULES=applications/mod_curl,formats/mod_shout,endpoints/mod_rtmp \
+    --build-arg DISABLED_MODULES=endpoints/mod_verto,applications/mod_signalwire \
     -t freeswitch:vmute-conf-fix .
+
+DOCKER_BUILDKIT=1 \
+    docker build -f Dockerfile \
+    --build-arg ENABLED_MODULES=applications/mod_curl,formats/mod_shout,endpoints/mod_rtmp \
+    --build-arg DISABLED_MODULES=endpoints/mod_verto,applications/mod_signalwire \
+    -t riquediniz/freeswitch:latest .
 ```
 
 - FREESWITCH_REPO
@@ -34,3 +42,11 @@ docker build -f Dockerfile \
 
 - SPANDSP_REPO
 - SPANDSP_REVISION
+
+- ENABLED_MODULES
+
+Comma-separated list of modules to enable from `modules.conf`
+
+- DISABLED_MODULES
+
+Comma-separated list of modules to disable from `modules.conf`

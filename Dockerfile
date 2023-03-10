@@ -1,5 +1,3 @@
-# syntax = docker/dockerfile:1.4.0
-
 FROM debian:11 as build
 
 RUN apt-get update
@@ -29,7 +27,9 @@ RUN apt-get -yq install \
 # mod_sndfile
     libsndfile1-dev libflac-dev libogg-dev libvorbis-dev \
 # mod_conference
-    libpng-dev libfreetype6-dev
+    libpng-dev libfreetype6-dev \
+# mod_shout
+    libshout3-dev libmpg123-dev libmp3lame-dev
 
 ARG SOFIA_SIP_REPO=https://github.com/freeswitch/sofia-sip
 ARG SOFIA_SIP_REVISION=v1.13.12
@@ -72,29 +72,28 @@ RUN cd /usr/src/libs/spandsp && \
     make install
 
 WORKDIR /usr/src/freeswitch
-RUN ./bootstrap.sh -j
-RUN sed -i 's;applications/mod_signalwire;#applications/mod_signalwire;g' modules.conf && \
-    sed -i 's;endpoints/mod_verto;#endpoints/mod_verto;g' modules.conf
-RUN PKG_CONFIG_PATH=/lib/pkgconfig ./configure --prefix=
-RUN mkdir -p /usr/build/prefix
-RUN make -j`nproc` && make DESTDIR=/usr/build/prefix/ install
+ADD build-freeswitch.sh .
+ARG ENABLED_MODULES=
+ARG DISABLED_MODULES=endpoints/mod_verto,applications/mod_signalwire
+RUN ENABLED_MODULES=${ENABLED_MODULES} DISABLED_MODULES=${DISABLED_MODULES} ./build-freeswitch.sh
 ADD create-min-root.sh .
 RUN ./create-min-root.sh
+
+FROM build as assets
 RUN wget https://files.freeswitch.org/releases/sounds/freeswitch-sounds-en-us-callie-8000-1.0.53.tar.gz
 RUN wget https://files.freeswitch.org/releases/sounds/freeswitch-sounds-music-8000-1.0.8.tar.gz
 
 FROM busybox:glibc
-COPY --from=build /root/min-root.tar.gz .
-RUN tar xzvf min-root.tar.gz && rm min-root.tar.gz
-ADD docker-entrypoint.sh .
-COPY --from=build /usr/src/freeswitch/freeswitch-sounds-en-us-callie-8000-1.0.53.tar.gz .
+COPY --from=assets /usr/src/freeswitch/freeswitch-sounds-en-us-callie-8000-1.0.53.tar.gz .
 RUN mkdir -p /share/freeswitch/sounds && \
     tar xzvf freeswitch-sounds-en-us-callie-8000-1.0.53.tar.gz -C /share/freeswitch/sounds && \
     rm freeswitch-sounds-en-us-callie-8000-1.0.53.tar.gz
-
-COPY --from=build /usr/src/freeswitch/freeswitch-sounds-music-8000-1.0.8.tar.gz .
+COPY --from=assets /usr/src/freeswitch/freeswitch-sounds-music-8000-1.0.8.tar.gz .
 RUN mkdir -p /share/freeswitch/sounds && \
     tar xzvf freeswitch-sounds-music-8000-1.0.8.tar.gz -C /share/freeswitch/sounds && \
     rm freeswitch-sounds-music-8000-1.0.8.tar.gz
 
+COPY --from=build /root/min-root.tar.gz .
+RUN tar xzvf min-root.tar.gz && rm min-root.tar.gz
+ADD docker-entrypoint.sh .
 CMD ["/docker-entrypoint.sh"]
