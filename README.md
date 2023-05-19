@@ -50,3 +50,10 @@ Comma-separated list of modules to enable from `modules.conf`
 - DISABLED_MODULES
 
 Comma-separated list of modules to disable from `modules.conf`
+
+
+DOCKER_BUILDKIT=1 \
+    docker build -f Dockerfile \
+    --build-arg ENABLED_MODULES=applications/mod_curl,formats/mod_shout,endpoints/mod_rtmp \
+    --build-arg DISABLED_MODULES=endpoints/mod_verto,applications/mod_signalwire \
+    -t freeswitch:latest .

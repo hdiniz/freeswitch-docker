@@ -2,8 +2,8 @@ FROM debian:11 as build
 
 RUN apt-get update
 # Adapted https://github.com/signalwire/freeswitch/blob/v1.10.9/docker/examples/Debian11/Dockerfile#L12
-RUN apt-get -yq install \
-    git wget \
+RUN apt-get --force-yes -yq install \
+    git wget vim \
 # build
     build-essential cmake automake autoconf 'libtool-bin|libtool' pkg-config \
 # general
@@ -29,7 +29,8 @@ RUN apt-get -yq install \
 # mod_conference
     libpng-dev libfreetype6-dev \
 # mod_shout
-    libshout3-dev libmpg123-dev libmp3lame-dev
+    libshout3-dev libmpg123-dev libmp3lame-dev \
+    flite-dev
 
 ARG SOFIA_SIP_REPO=https://github.com/freeswitch/sofia-sip
 ARG SOFIA_SIP_REVISION=v1.13.12
@@ -58,7 +59,6 @@ RUN mkdir -p /usr/src/freeswitch && \
     git fetch --depth 1 origin ${FREESWITCH_REVISION} && \
     git reset --hard FETCH_HEAD
 
-
 RUN cd /usr/src/libs/sofia-sip && \
     ./bootstrap.sh && \
     ./configure --with-pic --with-glib=no --without-doxygen --prefix= && \
@@ -73,6 +73,7 @@ RUN cd /usr/src/libs/spandsp && \
 
 WORKDIR /usr/src/freeswitch
 ADD build-freeswitch.sh .
+RUN apt-get update && apt-get install -y flite-dev
 ARG ENABLED_MODULES=
 ARG DISABLED_MODULES=endpoints/mod_verto,applications/mod_signalwire
 RUN ENABLED_MODULES=${ENABLED_MODULES} DISABLED_MODULES=${DISABLED_MODULES} ./build-freeswitch.sh

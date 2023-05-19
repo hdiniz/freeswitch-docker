@@ -13,7 +13,6 @@ for i in $(echo $DISABLED_MODULES | sed 's/,/ /g')
 do
     sed -i "s;^$i;#$i;g" modules.conf
 done
-
 PKG_CONFIG_PATH=/lib/pkgconfig ./configure --prefix=
 mkdir -p /usr/build/prefix
 make -j`nproc` && make DESTDIR=/usr/build/prefix/ install
